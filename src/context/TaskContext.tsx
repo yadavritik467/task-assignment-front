@@ -3,6 +3,7 @@
 import axiosInstance from '@/interceptor/interceptor';
 import { Task } from '@/interface/interface';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from './AuthContext';
 
 
 type TasksContextType = {
@@ -34,13 +35,15 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [allTaskCount, setAllTaskCount] = useState<number>(0);
     const [completedTaskCount, setCompletedTaskCount] = useState<number>(0);
 
+    const { token } = useAuth()
+
 
     useEffect(() => {
-        if (currentPage >= 1) {
+        if (currentPage >= 1 && token) {
             getAllTasks(currentPage, 10,)
             setSearchTask("")
         }
-    }, [currentPage])
+    }, [currentPage, token])
 
     const createTask = async (newTask: any) => {
         try {
