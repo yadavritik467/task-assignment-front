@@ -24,7 +24,10 @@ export const useSocket = () => {
 
 export const SocketProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const socket = useMemo(() => {
-        return io(process.env.NEXT_PUBLIC_API_URL);
+        if (process.env.NEXT_PUBLIC_SOCKET === "true") {
+            return io(process.env.NEXT_PUBLIC_API_URL);
+        }
+        return null;
     }, []);
 
     const { user } = useAuth()

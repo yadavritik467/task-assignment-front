@@ -2,7 +2,7 @@
 
 import axiosInstance from '@/interceptor/interceptor';
 import { Task } from '@/interface/interface';
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 
 type TasksContextType = {
@@ -10,7 +10,7 @@ type TasksContextType = {
     createTask: (newTask: any) => Promise<void>;
     updateTask: (updateTask: any) => Promise<void>;
     deleteTask: (id: string,) => Promise<void>;
-    getAllTasks: (page: number, limit: number, search?: string, myUserId?: string, status?: string, dueDate?: string, priority?: string,createdBy?:string) => Promise<void>;
+    getAllTasks: (page: number, limit: number, search?: string, myUserId?: string, status?: string, dueDate?: string, priority?: string, createdBy?: string) => Promise<void>;
     loading: boolean;
     inProgressTaskCount: number
     allTaskCount: number
@@ -35,6 +35,13 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [completedTaskCount, setCompletedTaskCount] = useState<number>(0);
 
 
+    useEffect(() => {
+        if (currentPage >= 1) {
+            getAllTasks(currentPage, 10,)
+            setSearchTask("")
+        }
+    }, [currentPage])
+
     const createTask = async (newTask: any) => {
         try {
             const { data } = await axiosInstance.post('/create-task', newTask);
@@ -46,7 +53,7 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const updateTask = async (updateTask: any) => {
 
         try {
-            const {_id:id , ...rest} = updateTask
+            const { _id: id, ...rest } = updateTask
             const { data } = await axiosInstance.put(`/update-task/${id}`, rest);
             return data
         } catch (err) {
@@ -63,7 +70,9 @@ export const TasksProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     };
 
-    const getAllTasks = async (page: number, limit: number, search?: string, myUserId?: string, status?: string, dueDate?: string, priority?: string,createdBy?:string) => {
+
+
+    const getAllTasks = async (page: number, limit: number, search?: string, myUserId?: string, status?: string, dueDate?: string, priority?: string, createdBy?: string) => {
         setLoading(true);
         try {
             const { data } = await axiosInstance.get(`/all-tasks?page=${page}&limit=${limit}&search=${search ?? ""}&myUserId=${myUserId ?? ""}&status=${status ?? ""}&dueDate=${dueDate ?? ""}&priority=${priority ?? ""}&createdBy=${createdBy ?? ""}`);
