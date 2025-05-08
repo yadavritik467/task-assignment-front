@@ -6,7 +6,20 @@ export interface LoginPageProps {
 }
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
+  role: string;
+}
+export interface Task {
+  _id: string;
+  title: string;
+  description: string;
+  assignedTo: User;
+  createdBy: User;
+  dueDate: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
 }

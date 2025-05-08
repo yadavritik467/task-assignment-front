@@ -1,51 +1,23 @@
 "use client"
-import { useState, useEffect } from "react";
+import Header from "@/components/Header";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { Search, PlusCircle, Bell, Calendar, AlertCircle, Clock, Filter, ChevronDown, Edit2, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useTasks } from "@/context/TaskContext";
+import { AlertCircle, Calendar, Clock, Edit2, PlusCircle, Search, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 
 export default function Home() {
-  const [tasks, setTasks] = useState<any[]>([
-    {
-      id: 1,
-      title: "Complete project proposal",
-      description: "Draft the initial project proposal for client review",
-      dueDate: "2025-05-15",
-      priority: "high",
-      status: "in-progress",
-      assignedTo: "John Doe",
-      createdBy: "Current User",
-    },
-    {
-      id: 2,
-      title: "Design wireframes",
-      description: "Create wireframes for the new dashboard interface",
-      dueDate: "2025-05-10",
-      priority: "medium",
-      status: "todo",
-      assignedTo: "Current User",
-      createdBy: "Jane Smith",
-    },
-    {
-      id: 3,
-      title: "Weekly team meeting",
-      description: "Discuss project progress and roadblocks",
-      dueDate: "2025-05-07",
-      priority: "low",
-      status: "completed",
-      assignedTo: "Current User",
-      createdBy: "Current User",
-    },
-  ]);
+  //  actual my code
 
-  // State
+  const { allUsers, user, token } = useAuth()
+  const { createTask, deleteTask, updateTask, getAllTasks, currentPage, searchTask, setSearchTask, overDueTaskCount, setCurrentPage, allTasks, allTaskCount, inProgressTaskCount } = useTasks()
+
   const [activeTab, setActiveTab] = useState("assigned");
-  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [currentTask, setCurrentTask] = useState<any>(null);
   const [newTask, setNewTask] = useState({
     title: "",
@@ -54,69 +26,39 @@ export default function Home() {
     priority: "medium",
     status: "todo",
     assignedTo: "",
+    assignedName: ""
   });
 
-  // Sample users for assignment
-  const users = [
-    { id: 1, name: "Current User" },
-    { id: 2, name: "John Doe" },
-    { id: 3, name: "Jane Smith" },
-    { id: 4, name: "Alex Johnson" },
-  ];
+  const callGetAllTaskFunc = () => {
+    const myUserId = activeTab === "assigned" && user?.role === "user" ? user?._id : ""
+    const status = statusFilter !== 'all' ? statusFilter : ""
+    const priority = priorityFilter !== 'all' ? priorityFilter : ""
+    const createdBy = activeTab === 'created' ? user?._id : ""
+    const dueDate = activeTab === 'overdue' ? activeTab : ""
+    getAllTasks(currentPage, 10, searchTask, myUserId, status, dueDate, priority, createdBy)
+  }
 
-  // Sample notifications
-  const notifications = [
-    { id: 1, text: "John Doe assigned you a new task", time: "10 minutes ago" },
-    { id: 2, text: "Task 'Design wireframes' is due soon", time: "1 hour ago" },
-    { id: 3, text: "Jane Smith completed a task", time: "3 hours ago" },
-  ];
-
-  // Filter tasks based on active tab
-  const getFilteredTasks = () => {
-    let filteredTasks = [...tasks];
-
-    // Apply tab filter
-    if (activeTab === "assigned") {
-      filteredTasks = filteredTasks.filter(task => task.assignedTo === "Current User");
-    } else if (activeTab === "created") {
-      filteredTasks = filteredTasks.filter(task => task.createdBy === "Current User");
-    } else if (activeTab === "overdue" && typeof window !== 'undefined') {
-      const today = new Date();
-      filteredTasks = filteredTasks.filter(task => {
-        const dueDate = new Date(task.dueDate);
-        return dueDate < today && task.status !== "completed";
-      });
+  useEffect(() => {
+    if (token && user) {
+      callGetAllTaskFunc()
     }
-
-    // Apply search filter
-    if (searchTerm) {
-      filteredTasks = filteredTasks.filter(
-        task => task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          task.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  }, [user, activeTab, statusFilter, priorityFilter, token])
+  useEffect(() => {
+    if (token && user) {
+      setStatusFilter('all')
+      setPriorityFilter('all')
+      const delayDebounce = setTimeout(() => {
+        const myUserId = activeTab === "assigned" && user?.role === "user" ? user?._id : ""
+        getAllTasks(currentPage, 10, searchTask, myUserId,)
+      }, 1000)
+      return () => clearTimeout(delayDebounce);
     }
-
-    // Apply status filter
-    if (statusFilter !== "all") {
-      filteredTasks = filteredTasks.filter(task => task.status === statusFilter);
-    }
-
-    // Apply priority filter
-    if (priorityFilter !== "all") {
-      filteredTasks = filteredTasks.filter(task => task.priority === priorityFilter);
-    }
-
-    return filteredTasks;
-  };
+  }, [searchTask, token])
 
   // Handle task creation
-  const handleCreateTask = () => {
-    const taskToAdd = {
-      id: tasks.length + 1,
-      ...newTask,
-      createdBy: "Current User",
-    };
-    setTasks([...tasks, taskToAdd]);
+  const handleCreateTask = async () => {
+
+    const res: any = await createTask(newTask)
     setNewTask({
       title: "",
       description: "",
@@ -124,27 +66,33 @@ export default function Home() {
       priority: "medium",
       status: "todo",
       assignedTo: "",
+      assignedName: ""
     });
     setShowAddModal(false);
+    if (res) {
+      callGetAllTaskFunc()
+    }
   };
 
   // Handle task update
-  const handleUpdateTask = () => {
-    const updatedTasks = tasks.map(task =>
-      task.id === currentTask.id ? currentTask : task
-    );
-    setTasks(updatedTasks);
+  const handleUpdateTask = async () => {
+    const res: any = await updateTask(currentTask)
     setShowEditModal(false);
+    if (res) {
+      callGetAllTaskFunc()
+    }
   };
 
   // Handle task deletion
-  const handleDeleteTask = (id: string) => {
-    const updatedTasks = tasks.filter(task => task.id !== id);
-    setTasks(updatedTasks);
+  const handleDeleteTask = async (id: string) => {
+    const res: any = await deleteTask(id)
+    if (res) {
+      callGetAllTaskFunc()
+    }
   };
 
   // Get priority badge color
-  const getPriorityColor = (priority) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high": return "bg-red-100 text-red-800";
       case "medium": return "bg-yellow-100 text-yellow-800";
@@ -154,7 +102,7 @@ export default function Home() {
   };
 
   // Get status badge color
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "completed": return "bg-green-100 text-green-800";
       case "in-progress": return "bg-blue-100 text-blue-800";
@@ -166,43 +114,7 @@ export default function Home() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Task Manager</h1>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2 rounded-full text-gray-600 hover:bg-gray-100 focus:outline-none"
-                >
-                  <Bell className="h-6 w-6" />
-                  <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
-                </button>
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-20 border border-gray-200">
-                    <div className="p-3 border-b border-gray-200">
-                      <h3 className="text-sm font-semibold">Notifications</h3>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {notifications.map(notification => (
-                        <div key={notification.id} className="p-3 hover:bg-gray-50 border-b border-gray-100">
-                          <p className="text-sm text-gray-800">{notification.text}</p>
-                          <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="p-2 text-center border-t border-gray-200">
-                      <button className="text-sm text-blue-600 hover:text-blue-800">Mark all as read</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-medium">
-                CU
-              </div>
-            </div>
-          </div>
-        </header>
+        <Header />
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -214,9 +126,10 @@ export default function Home() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Tasks</p>
-                <p className="text-2xl font-semibold text-gray-900">{tasks.length}</p>
+                <p className="text-2xl font-semibold text-gray-900">{allTaskCount ?? 0}</p>
               </div>
             </div>
+
             <div className="bg-white rounded-lg shadow p-6 flex items-center">
               <div className="p-3 rounded-full bg-yellow-100 mr-4">
                 <Clock className="h-6 w-6 text-yellow-600" />
@@ -224,7 +137,7 @@ export default function Home() {
               <div>
                 <p className="text-sm font-medium text-gray-600">In Progress</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {tasks.filter(task => task.status === "in-progress").length}
+                  {inProgressTaskCount}
                 </p>
               </div>
             </div>
@@ -235,11 +148,7 @@ export default function Home() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Overdue</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {typeof window !== 'undefined' ? tasks.filter(task => {
-                    const today = new Date();
-                    const dueDate = new Date(task.dueDate);
-                    return dueDate < today && task.status !== "completed";
-                  }).length : null}
+                  {overDueTaskCount}
                 </p>
               </div>
             </div>
@@ -257,7 +166,7 @@ export default function Home() {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                 >
-                  Assigned to me
+                  {user?.role === 'admin' ? "All Task" : "Assigned to me"}
                 </button>
                 <button
                   onClick={() => setActiveTab("created")}
@@ -290,8 +199,8 @@ export default function Home() {
                   type="text"
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   placeholder="Search tasks..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchTask}
+                  onChange={(e) => setSearchTask(e.target.value)}
                 />
               </div>
               <div className="grid grid-cols-12 gap-3">
@@ -355,15 +264,18 @@ export default function Home() {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Assigned To
                     </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created By
+                    </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {getFilteredTasks().length > 0 ? (
-                    getFilteredTasks().map((task) => (
-                      <tr key={task.id}>
+                  {allTasks.length > 0 ? (
+                    allTasks.map((task) => (
+                      <tr key={task._id}>
                         <td className="px-6 py-4">
                           <div className="flex flex-col">
                             <div className="text-sm font-medium text-gray-900">{task.title}</div>
@@ -371,7 +283,7 @@ export default function Home() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {/* {typeof window !== 'undefined' && new Date(task.dueDate).toLocaleDateString()} */}
+                          {new Date(task.dueDate).toLocaleDateString("en-GB")}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityColor(task.priority)}`}>
@@ -386,12 +298,15 @@ export default function Home() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {task.assignedTo}
+                          {task.assignedTo?.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {task.createdBy?.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <button
                             onClick={() => {
-                              setCurrentTask(task);
+                              setCurrentTask(() => ({ ...task, assignedName: task?.assignedTo?.name }));
                               setShowEditModal(true);
                             }}
                             className="text-indigo-600 hover:text-indigo-900 mr-3"
@@ -399,7 +314,7 @@ export default function Home() {
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteTask(task.id)}
+                            onClick={() => handleDeleteTask(task._id)}
                             className="text-red-600 hover:text-red-900"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -409,7 +324,7 @@ export default function Home() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
+                      <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
                         No tasks found
                       </td>
                     </tr>
@@ -505,11 +420,20 @@ export default function Home() {
                         id="assignedTo"
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 pl-3 pr-10 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         value={newTask.assignedTo}
-                        onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          const selectedUser = allUsers.find(user => user?._id === selectedId);
+                          setNewTask({
+                            ...newTask,
+                            assignedTo: selectedId,
+                            assignedName: selectedUser?.name || ''
+                          });
+                        }}
+
                       >
                         <option value="">Select User</option>
-                        {users.map(user => (
-                          <option key={user.id} value={user.name}>{user.name}</option>
+                        {allUsers.map(user => (
+                          <option key={user?._id} value={user?._id}>{user?.name}</option>
                         ))}
                       </select>
                     </div>
@@ -620,32 +544,40 @@ export default function Home() {
                       <select
                         id="edit-assignedTo"
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 pl-3 pr-10 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        value={currentTask.assignedTo}
-                        onChange={(e) => setCurrentTask({ ...currentTask, assignedTo: e.target.value })}
+                        value={currentTask.assignedTo?._id}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          const selectedUser = allUsers.find(user => user?._id === selectedId);
+                          setCurrentTask({
+                            ...currentTask,
+                            assignedTo: selectedId,
+                            assignedName: selectedUser?.name || ''
+                          });
+                        }}
                       >
                         <option value="">Select User</option>
-                        {users.map(user => (
-                          <option key={user.id} value={user.name}>{user.name}</option>
+                        {allUsers.map(user => (
+                          <option key={user?._id} value={user?._id}>{user?.name}</option>
                         ))}
                       </select>
                     </div>
                   </div>
                   <div className="bg-gray-50  pt-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="button"
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
-                    onClick={handleCreateTask}
-                  >
-                    Create
-                  </button>
-                  <button
-                    type="button"
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                    onClick={() => setShowEditModal(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
+                      onClick={handleUpdateTask}
+                    >
+                      Update
+                    </button>
+                    <button
+                      type="button"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                      onClick={() => setShowEditModal(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

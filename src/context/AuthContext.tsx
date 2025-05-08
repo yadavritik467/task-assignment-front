@@ -1,9 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import { User } from '@/interface/interface';
 import axiosInstance from '@/interceptor/interceptor';
+import { useRouter } from 'next/navigation';
 
 
 type AuthContextType = {
@@ -15,21 +15,23 @@ type AuthContextType = {
     myProfileApi: () => Promise<void>;
     logout: () => void;
     loading: boolean;
+    allUsers:User[]
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [alUsers, setAllUsers] = useState<User[]>([]);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [token, setToken] = useState<string | null>(typeof window !== 'undefined' ? JSON.parse(sessionStorage.getItem('token') as string) : "");
     const [loading, setLoading] = useState<boolean>(false);
+    const router = useRouter();
 
     useEffect(() => {
 
         if (token) {
-            // console.log('token',token)
             myProfileApi()
+            allUsersApi()
         }
     }, [token]);
 
@@ -47,9 +49,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(true);
         try {
             const res = await axiosInstance.post('/login', { email, password });
-            console.log('res',res)
             setToken(res?.data?.data);
-            sessionStorage.setItem('token', JSON.stringify(token));
+            sessionStorage.setItem('token', JSON.stringify(res?.data?.data));
+            router.push('/')
             setLoading(false);
         } catch (err) {
             console.error('Login failed:', err);
@@ -60,9 +62,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(true);
         try {
             const res = await axiosInstance.post('/admin-login', { email, password });
-            const { token, } = res.data;
-            setToken(token);
-            sessionStorage.setItem('token', JSON.stringify(token));
+            setToken(res?.data?.data);
+            sessionStorage.setItem('token', JSON.stringify(res?.data?.data));
+            router.push('/')
             setLoading(false);
         } catch (err) {
             console.error('Login failed:', err);
@@ -74,8 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(true);
         try {
             const res = await axiosInstance.get('/myProfile');
-            const { user } = res.data;
-            setUser(user);
+            setUser(res?.data?.data);
             setLoading(false);
         } catch (err) {
             console.error('Login failed:', err);
@@ -87,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(true);
         try {
             const res = await axiosInstance.get('/all-users');
-            const { allUsers } = res.data;
+            const { allUsers } = res.data?.data;
             setAllUsers(allUsers);
             setLoading(false);
         } catch (err) {
@@ -101,12 +102,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(null);
         setUser(null);
         sessionStorage.removeItem('token');
+        router.push("/auth")
     };
 
     const all_states = {
         loading,
         token,
-        user
+        user,
+        allUsers
     }
     const all_api_handler = {
         logout,
