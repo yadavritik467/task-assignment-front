@@ -1,6 +1,6 @@
 import { toast } from "react-toastify";
 
-export const AppURl = "http://localhost:4500";
+export const AppURl = process.env.NEXT_PUBLIC_API_URL as string;
 
 export const showToast = (message: string, type: "Err" | "Success") => {
   if (type === "Err") return toast.error(message, { autoClose: 3000 });
