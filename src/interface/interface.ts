@@ -23,3 +23,13 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Notification {
+  _id: string;
+  userId: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  updatedAt: string;
+  __v: 0;
+}

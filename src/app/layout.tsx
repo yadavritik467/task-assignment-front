@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastContainer } from "react-toastify";
 import { TasksProvider } from "@/context/TaskContext";
+import { SocketProvider } from "@/context/SocketContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,11 +33,14 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <TasksProvider>
-
-            {children}
-            <ToastContainer position="top-right" />
-          </TasksProvider>
+          <NotificationProvider>
+            <SocketProvider>
+              <TasksProvider>
+                {children}
+                <ToastContainer position="top-right" />
+              </TasksProvider>
+            </SocketProvider>
+          </NotificationProvider>
         </AuthProvider>
       </body>
     </html>

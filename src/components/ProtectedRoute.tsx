@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface ProtectedRouteProps {
@@ -9,6 +9,11 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     const router = useRouter();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     useEffect(() => {
         const token = sessionStorage.getItem('token');
@@ -17,7 +22,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
         }
     }, [router]);
 
-    return <>{children}</>;
+    return <> {isClient ?  children  : null}</>;
 };
 
 export default ProtectedRoute;

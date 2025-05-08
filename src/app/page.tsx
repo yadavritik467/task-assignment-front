@@ -2,16 +2,20 @@
 import Header from "@/components/Header";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
+import { useNotification } from "@/context/NotificationContext";
+import { useSocket } from "@/context/SocketContext";
 import { useTasks } from "@/context/TaskContext";
 import { AlertCircle, Calendar, Clock, Edit2, PlusCircle, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 
 export default function Home() {
-  //  actual my code
 
   const { allUsers, user, token } = useAuth()
+  const { socket, socketConnectHandler } = useSocket()
   const { createTask, deleteTask, updateTask, getAllTasks, currentPage, searchTask, setSearchTask, overDueTaskCount, setCurrentPage, allTasks, allTaskCount, inProgressTaskCount } = useTasks()
+
+  const { notification, notificationCount } = useNotification()
 
   const [activeTab, setActiveTab] = useState("assigned");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -91,6 +95,15 @@ export default function Home() {
     }
   };
 
+
+  useEffect(() => {
+    if (token && user?._id) {
+      if (!socket?.connected) {
+        socketConnectHandler()
+      }
+    }
+  }, [token, user?._id, socket])
+
   // Get priority badge color
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -114,7 +127,7 @@ export default function Home() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <Header />
+        <Header /> 
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -503,7 +516,7 @@ export default function Home() {
                         type="date"
                         id="edit-dueDate"
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        value={currentTask.dueDate}
+                        value={currentTask?.dueDate ? currentTask.dueDate.split('T')[0] : ''}
                         onChange={(e) => setCurrentTask({ ...currentTask, dueDate: e.target.value })}
                       />
                     </div>
