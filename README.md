@@ -1,6 +1,6 @@
-# Task Management System
+# Task Assignment Front
 
-This is a **Task Management System** built using **Next.js** and **TypeScript**. The application is designed to allow users to create, assign, track, and manage tasks effectively while also implementing team collaboration features. It includes user authentication, task management, and filtering options based on various attributes like task title, status, priority, and due date.
+This is a **Task Assignment Front** built using **Next.js** and **TypeScript**. The application is designed to allow users to create, assign, track, and manage tasks effectively while also implementing team collaboration features. It includes user authentication, task management, and filtering options based on various attributes like task title, status, priority, and due date.
 
 ## Features
 
@@ -55,5 +55,5 @@ Ensure you have the following installed:
 
    ```bash
    git clone https://github.com/yadavritik467/task-assignment-front.git
-   cd task-management-system
+   cd task-assignment-front
    ```
